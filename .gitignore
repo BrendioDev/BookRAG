@@ -203,3 +203,11 @@ test/
 /Scripts/cfg/m3docVQA.yaml
 /Scripts/cfg/MMLongBench.yaml
 /Scripts/cfg/Qasper.yaml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/.gitignore
+/.idea/BookRAG.iml
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
