@@ -12,7 +12,6 @@ from Core.configs.dataset_config import load_dataset_config, DatasetConfig
 from Core.construct_index import (
     construct_GBC_index,
     construct_vdb,
-    compute_mm_reranker,
     rebuild_graph_vdb,
 )
 from Core.inference import inference
@@ -106,13 +105,12 @@ def create_args():
         "--stage",
         type=str,
         default="all",
-        choices=["tree", "graph", "vdb", "all", "mm_reranker", "rebuild_graph_vdb"],
+        choices=["tree", "graph", "vdb", "all", "rebuild_graph_vdb"],
         help="Specify which stage of the indexing pipeline to run: "
         "'tree' - Build and save the document tree only. "
         "'graph' - Build and save the knowledge graph (requires a tree). "
         "'vdb' - Build and save the vector database (requires a tree). "
-        "'all' - Run all stages sequentially."
-        "'mm_reranker' - Build and save the multi-modal reranker (requires a tree). "
+        "'all' - Run all stages sequentially. "
         "'rebuild_graph_vdb' - Rebuild the graph and vector database (requires GBC Index).",
     )
 
@@ -142,10 +140,6 @@ def build_index(config: SystemConfig, stage: str = "all", data_df: pd.DataFrame 
         # This function should LOAD the pre-existing tree and then build/save the VDB
         construct_vdb(config)
 
-    if stage == "mm_reranker":
-        log.info("  - STAGE: Building MM Reranker Embedding...")
-        compute_mm_reranker(config, data_df)
-    
     if stage == "rebuild_graph_vdb":
         log.info("  - STAGE: Rebuilding Graph VDB...")
         rebuild_graph_vdb(config)
@@ -220,11 +214,6 @@ def process_resource(base_system_cfg: SystemConfig, args):
     # base_system_cfg.graph.reranker_config.api_base = "http://localhost:8010/v1"
     # base_system_cfg.llm.api_base = "http://10.26.1.21:8002/v1"
     base_system_cfg.llm.api_base = "http://localhost:8003/v1"
-
-    if base_system_cfg.rag.strategy_config.strategy == "mmr":
-        base_system_cfg.rag.strategy_config.vdb_config.embedding_config.device = (
-            "cuda:4"
-        )
 
     # For GBC inference
     if base_system_cfg.rag.strategy_config.strategy == "gbc":

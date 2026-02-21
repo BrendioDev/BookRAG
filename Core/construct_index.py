@@ -1,7 +1,6 @@
 import os
 import logging
 import time
-import pandas as pd
 
 from Core.configs.vdb_config import VDBConfig
 
@@ -11,12 +10,7 @@ from Core.Index.GBCIndex import GBC
 from Core.configs.system_config import SystemConfig
 from Core.pipelines.doc_tree_builder import build_tree_from_pdf
 from Core.pipelines.kg_builder import build_knowledge_graph
-from Core.pipelines.vdb_index import (
-    build_other_vdb_index,
-    build_vdb_index,
-    compute_mm_embedding,
-    compute_mm_embedding_question,
-)
+from Core.pipelines.vdb_index import build_vdb_index
 from Core.provider.TokenTracker import TokenTracker
 from Core.utils.file_utils import save_indexing_stats
 
@@ -87,11 +81,6 @@ def construct_vdb(cfg: SystemConfig):
 
     log.info("Starting vector database construction...")
 
-    if cfg.index_type in ["vanilla", "bm25", "raptor"]:
-        log.info(f"Index type is {cfg.index_type}. Start building other vdb index...")
-        build_other_vdb_index(cfg)
-        return
-
     current_run_stats = {}
 
     tree_start_time = time.time()
@@ -138,37 +127,5 @@ def construct_vdb(cfg: SystemConfig):
     save_indexing_stats(save_path=cfg.save_path, new_stats=current_run_stats)
 
 
-def compute_mm_reranker(cfg: SystemConfig, group: pd.DataFrame):
-
-    tree_index = build_tree_from_pdf(cfg)
-
-    compute_mm_embedding(cfg, tree_index)
-    
-    compute_mm_embedding_question(cfg, group)
-
-
 if __name__ == "__main__":
     print("test")
-
-    # parser = argparse.ArgumentParser(description="Extract text content from PDF files.")
-    # parser.add_argument(
-    #     "--config_path",
-    #     type=str,
-    #     default="/home/wangshu/multimodal/GBC-RAG/config/gbc.yaml",
-    #     help="Path to the configuration file.",
-    # )
-
-    # args = parser.parse_args()
-
-    # cfg = load_system_config(args.config_path)
-
-    # if not os.path.exists(cfg.save_path):
-    #     os.makedirs(cfg.save_path)
-    #     log.info(f"Created directory: {cfg.save_path}")
-    # else:
-    #     log.info(f"Directory already exists: {cfg.save_path}")
-
-    # construct_vdb(cfg)
-
-    # gbc_index = construct_GBC_index(cfg)
-    # log.info("GBC index construction completed successfully.")

@@ -223,20 +223,8 @@ def inference(cfg: SystemConfig, data_df: pd.DataFrame, dataset_name: str):
 
     rag_strategy = cfg.rag.strategy_config.strategy
     log.info(f"Using RAG strategy: {rag_strategy}")
-    if rag_strategy == "vanilla":
-        retrieval_method = cfg.rag.strategy_config.retrieval_method
-        output_dir = output_dir = (
-            Path(cfg.save_path) / f"eval_{dataset_name}_{retrieval_method}"
-        )
-    elif rag_strategy == "gbc":
-        varient = cfg.rag.strategy_config.varient
-        output_dir = output_dir = (
-            Path(cfg.save_path) / f"eval_{dataset_name}_{rag_strategy}_{varient}"
-        )
-    else:
-        output_dir = output_dir = (
-            Path(cfg.save_path) / f"eval_{dataset_name}_{rag_strategy}"
-        )
+    varient = cfg.rag.strategy_config.varient
+    output_dir = Path(cfg.save_path) / f"eval_{dataset_name}_{rag_strategy}_{varient}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
     run_rag(
