@@ -28,6 +28,7 @@ class TextRerankerProvider:
         torch_dtype: torch.dtype = torch.bfloat16,
         backend: str = "local",
         api_base: str = None,
+        api_key: str = "",
     ):
         """
         初始化Reranker Provider。
@@ -59,6 +60,17 @@ class TextRerankerProvider:
             # 创建一个 session 以复用连接，提升性能
             self.session = requests.Session()
             log.info(f"Using vLLM backend. Rerank endpoint: {self.rerank_url}")
+        # ==========================================================
+        # Jina 后端逻辑
+        # ==========================================================
+        elif self.backend == "jina":
+            if not api_key:
+                raise ValueError("api_key must be provided for the 'jina' backend.")
+            self.api_key = api_key
+            self.rerank_url = api_base if api_base else "https://api.jina.ai/v1/rerank"
+            self.session = requests.Session()
+            log.info(f"Using Jina backend. Rerank endpoint: {self.rerank_url}")
+
         # ==========================================================
         # 本地后端逻辑 (将原有代码移入此分支)
         # ==========================================================
@@ -99,9 +111,10 @@ class TextRerankerProvider:
 
         else:
             raise ValueError(
-                f"Unsupported backend: {self.backend}. Choose 'local' or 'vllm'."
+                f"Unsupported backend: {self.backend}. Choose 'local', 'vllm', or 'jina'."
             )
-        self._define_prompt_template()
+        if self.backend in ("local", "vllm"):
+            self._define_prompt_template()
 
     def clean_cache(self):
         if self.backend == "local":
@@ -134,8 +147,13 @@ class TextRerankerProvider:
 
         elif self.backend == "vllm":
             if hasattr(self, "session"):
-                self.session.close()  # 关闭 requests session
+                self.session.close()
             log.info("vLLM backend session closed.")
+
+        elif self.backend == "jina":
+            if hasattr(self, "session"):
+                self.session.close()
+            log.info("Jina backend session closed.")
 
         log.info("TextRerankerProvider closed.")
 
@@ -263,7 +281,28 @@ class TextRerankerProvider:
         if not documents or not isinstance(documents, list):
             raise ValueError("Input 'documents' must be a non-empty list of strings.")
 
-        if self.backend == "vllm":
+        if self.backend == "jina":
+            payload = {
+                "model": self.model_name,
+                "query": query,
+                "documents": documents,
+                "top_n": len(documents),
+            }
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            }
+            response = self.session.post(self.rerank_url, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            results = data.get("results", [])
+            # Jina returns results sorted by relevance; re-order by original index
+            scores = [0.0] * len(documents)
+            for r in results:
+                scores[r["index"]] = r["relevance_score"]
+            return scores
+
+        elif self.backend == "vllm":
 
             if instruction is None:
                 # 使用默认的 instruction
